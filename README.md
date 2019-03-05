@@ -77,6 +77,7 @@ describe.factor(AMAData$A294_Q41)
 describe.factor(AMAData$A294_Q57)
 describe.factor(AMAData$A294_Q137)
 describe.factor(AMAData$A297_Q5)
+dim(AMAData)
 ```
 
 
@@ -128,7 +129,7 @@ None = 1 versus everything else
 describe.factor(AMAData$A294_Q137)
 No_trouble = ifelse(AMAData$A294_Q137 == "None", 1, 0)
 AMAData$No_trouble = No_trouble
-
+describe.factor(AMAData$No_trouble)
 ```
 A297_Q5
 
@@ -145,6 +146,7 @@ AMA Against Medical Advice = 1; completed program is 0
 describe.factor(AMAData$DischargeType)
 AMA = ifelse(AMAData$DischargeType == "AMA Against Medical Advice", 1, 0)
 AMAData$AMA = AMA
+describe.factor(AMA)
 ```
 
 
@@ -171,11 +173,58 @@ A294_Q233, A297_Q1, A297_Q3
 
 ```{r}
 head(AMAData)
-head(AMAData[,13:55])
-AMAData_bin_con = 
+head(AMAData[c(13:55, 58:59)])
+AMAData_bin_con = AMAData[c(13:55, 58:59)]
+sum(is.na(AMAData_bin_con))
 head(AMAData_analysis)
-```
 
+AMAData_bin_con = apply(AMAData_bin_con, 2, function(x){ifelse(x == "Yes", 1, 0)})
+describe(AMAData_bin_con)
+sum(is.na(AMAData_bin_con))
+```
+Ok now get the corrected binary data back with the original data
+```{r}
+head(AMAData)
+
+### Data I want to keep from the first data set to combine with the second
+AMAData_keep = AMAData[c(2, 5, 60:73)]
+
+AMAData_analysis = data.frame(AMAData_keep, AMAData_bin_con)
+head(AMAData_analysis)
+
+AMAData_analysis_complete$AMA = factor(AMAData_analysis_complete$AMA)
+```
+Now do missing data analysis
+```{r}
+AMAData_analysis_complete = na.omit(AMAData_analysis)
+dim(AMAData_analysis_complete)
+
+1-dim(AMAData_analysis_complete)[1]/dim(AMAData_analysis)[1]
+```
+Get training
+```{r}
+inTrain = createDataPartition(y = AMAData_analysis_complete$ClientEncounter_NUM, p = .25, list = FALSE)
+training = AMAData_analysis_complete[inTrain,]
+testing = AMAData_analysis_complete[-inTrain,] 
+head(testing)
+```
+Now develop the controls for the model
+```{r}
+fitControl <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 10)
+```
+Now run the model
+```{r}
+
+
+gbmFit1 <- train(AMA ~ ., data = training, 
+                 method = "gbm", 
+                 trControl = fitControl,
+                 verbose = FALSE)
+
+```
 
 
 
